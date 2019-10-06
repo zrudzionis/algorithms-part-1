@@ -7,14 +7,10 @@ import java.util.NoSuchElementException;
 
 public class RandomizedQueue<Item> implements Iterable<Item> {
     private int cnt;
-    private int n;
-    private int pos;
     private Item[] ar;
 
     public RandomizedQueue() {
         cnt = 0;
-        n = 1;
-        pos = -1;
         ar = (Item[]) new Object[1];
     }
 
@@ -30,77 +26,42 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
         if (item == null) {
             throw new IllegalArgumentException("Enqueue does not accept null");
         }
-//        StdOut.println(String.format("n = %d, pos = $%d, cnt = %d", n, pos, cnt));
-        if (pos + 1 == n) {
-            reorder();
-        }
-        ar[pos + 1] = item;
-        pos += 1;
+        ar[cnt] = item;
         cnt += 1;
-        if (cnt == n) {
-            resize(n * 2);
+        if (cnt == ar.length) {
+            resize(ar.length * 2);
         }
-    }
-
-    private void reorder() {
-        Item[] tmp = (Item[]) new Object[n];
-        int j = 0;
-        for (int i = 0; i < n; i++) {
-            if (ar[i] != null) {
-                tmp[j] = ar[i];
-                j += 1;
-            }
-        }
-        ar = tmp;
-        pos = cnt - 1;
     }
 
     private void resize(int k) {
         Item[] tmp = (Item[]) new Object[k];
-        int j = 0;
-        for (int i = 0; i < n; i++) {
-            if (ar[i] != null) {
-                tmp[j] = ar[i];
-                j += 1;
-            }
+        for (int i = 0; i < cnt; i++) {
+            tmp[i] = ar[i];
         }
         ar = tmp;
-        n = k;
-        pos = cnt - 1;
     }
 
     public Item dequeue() {
         if (cnt == 0) {
             throw new NoSuchElementException("RandomizedQueue is empty");
         }
-        while (true) {
-            int idx = StdRandom.uniform(pos + 1);
-            Item item = ar[idx];
-            if (item != null) {
-                ar[idx] = null;
-                cnt -= 1;
-                if (n > 4 && cnt == n / 4) {
-                    resize(n / 2);
-                }
-                if (cnt == 0) {
-                    pos = -1;
-                }
-                return item;
-            }
+        int idx = StdRandom.uniform(cnt);
+        Item item = ar[idx];
+        ar[idx] = ar[cnt - 1];
+        ar[cnt - 1] = null;
+        cnt -= 1;
+        if (ar.length > 4 && cnt == ar.length / 4) {
+            resize(ar.length / 2);
         }
+        return item;
     }
 
     public Item sample() {
         if (cnt == 0) {
             throw new NoSuchElementException("RandomizedQueue is empty");
         }
-        while (true) {
-            int idx = StdRandom.uniform(pos + 1);
-            Item item = ar[idx];
-            if (item != null) {
-                return item;
-            }
-        }
+        int idx = StdRandom.uniform(cnt);
+        return ar[idx];
     }
 
     public Iterator<Item> iterator() {
@@ -113,22 +74,15 @@ public class RandomizedQueue<Item> implements Iterable<Item> {
 
         public RandomizedQueueIterator() {
             idx = 0;
-            idxs = new int[n];
-            for (int i = 0; i < n; i++) {
+            idxs = new int[cnt];
+            for (int i = 0; i < cnt; i++) {
                 idxs[i] = i;
             }
             StdRandom.shuffle(idxs);
         }
 
         public boolean hasNext() {
-            while (idx < n && ar[idxs[idx]] == null) {
-                idx += 1;
-            }
-            if (idx >= n) {
-                return false;
-            } else {
-                return ar[idxs[idx]] != null;
-            }
+            return idx < idxs.length;
         }
 
         public Item next() {
