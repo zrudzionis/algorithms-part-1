@@ -132,11 +132,24 @@ public class Client {
 //        drawSegments(slow.segments());
         assert fast.numberOfSegments() == 4;
     }
-    
+
+    private static void test5() {
+        StdOut.println("Test5...");
+        Point[] pts = readFromFile("oneline.txt");
+        FastCollinearPoints fast = new FastCollinearPoints(pts);
+
+//        setScale(-4000, 35000, -4000, 35000);
+//        drawPoints(pts);
+//        drawSegments(fast.segments());
+//        drawSegments(slow.segments());
+        assert fast.numberOfSegments() == 1;
+    }
+
     public static void main(String[] args) {
         test1();
         test2();
         test3();
         test4();
+        test5();
     }
 }
