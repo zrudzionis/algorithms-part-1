@@ -1,7 +1,7 @@
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
-import edu.princeton.cs.algs4.StdOut;
 
 public class FastCollinearPoints {
     private static final Comparator<Point> natural = new Natural();
@@ -38,24 +38,24 @@ public class FastCollinearPoints {
         if (n < 4) {
             return;
         }
-        
+
         solve(pts);
     }
 
     private void solve(Point[] pts) {
         int n = pts.length;
         Pair[] pairs = new Pair[n];
+        ArrayList<Pair> sp = new ArrayList<Pair>();
+        ArrayList<ArrayList<Double>> slopes = new ArrayList<ArrayList<Double>>();
         for (int i = 0; i < n; i++) {
             pairs[i] = new Pair(pts[i], i);
+            slopes.add(new ArrayList<Double>());
         }
-        boolean vi[] = new boolean[n];
-        ArrayList<Pair> sp = new ArrayList<Pair>();
 
         for (int i = 0; i < n - 3; i++) {
             Pair ap = pairs[i];
             Point a = ap.p;
-            Arrays.sort(pairs, i + 1, n - 1, new ByPointComparator(a.slopeOrder()));
-
+            Arrays.sort(pairs, i + 1, n, new ByPointComparator(a.slopeOrder()));
             int j = i + 1;
             Double slope = null;
             sp.clear();
@@ -67,7 +67,7 @@ public class FastCollinearPoints {
                 int bi = bp.idx;
                 double bs = a.slopeTo(b);
 
-                if (vi[bi]) {
+                if (Collections.binarySearch(slopes.get(bp.idx), bs) >= 0) {
                     j += 1;
                     continue;
                 }
@@ -77,8 +77,10 @@ public class FastCollinearPoints {
                     sp.add(bp);
                 } else {
                     if (sp.size() >= 4) {
-                        addSegment(sp, vi);
+                        addSegment(sp, slopes);
+                        sp.clear();
                     }
+                    sp.clear();
                     sp.add(ap);
                     sp.add(bp);
                     slope = bs;
@@ -86,19 +88,30 @@ public class FastCollinearPoints {
                 j += 1;
             }
             if (sp.size() >= 4) {
-                addSegment(sp, vi);
+                addSegment(sp, slopes);
+                sp.clear();
             }
         }
     }
 
-    private void addSegment(ArrayList<Pair> sp, boolean vi[]) {
+    private void addSegment(ArrayList<Pair> sp, ArrayList<ArrayList<Double>> slopes) {
         sp.sort(new ByPointComparator(natural));
         LineSegment ls = new LineSegment(sp.get(0).p, sp.get(sp.size() - 1).p);
         segments.add(ls);
-        for(int i = 0; i < sp.size(); i++) {
-            vi[sp.get(i).idx] = true;
+
+        for (int i = 1; i < sp.size(); i++) {
+            Pair ap = sp.get(i - 1);
+            Point a = ap.p;
+            Pair bp = sp.get(i);
+            Point b = bp.p;
+            double slope = a.slopeTo(b);
+            slopes.get(bp.idx).add(slope);
+            Collections.sort(slopes.get(bp.idx));
+            if (i == 1) {
+                slopes.get(ap.idx).add(slope);
+                Collections.sort(slopes.get(ap.idx));
+            }
         }
-        sp.clear();
     }
 
     private static class Natural implements Comparator<Point> {
