@@ -163,10 +163,25 @@ public class Board implements Iterable<Board> {
     // a board that is o/btained by exchanging any pair of tiles
     public Board twin() {
         Random randomGenerator = new Random();
-        int r1 = randomGenerator.nextInt(n);
-        int c1 = randomGenerator.nextInt(n);
-        int r2 = randomGenerator.nextInt(n);
-        int c2 = randomGenerator.nextInt(n);
+        int a = randomGenerator.nextInt(n*n) + 1;
+        int b = 0;
+        while (b == 0 || b == a) {
+            b = randomGenerator.nextInt(n*n) + 1;
+        }
+        int r1 = 0, c1 = 0, r2 = 0, c2 = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                int v = tiles[i][j];
+                if (v == a) {
+                    r1 = i;
+                    c1 = j;
+                }
+                if (v == b) {
+                    r2 = i;
+                    c2 = j;
+                }
+            }
+        }
         return getBoardAfterSwap(r1, c1, r2, c2);
     }
 
