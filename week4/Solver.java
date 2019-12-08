@@ -1,16 +1,18 @@
 import java.util.ArrayList;
-import java.lang.Iterable;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.HashMap;
 
 import edu.princeton.cs.algs4.MinPQ;
+import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.In;
 
-public class Solver implements Iterable<Board> {
-    private Board board;
-    private int moves = -1;
-    private MinPQ<Node> minpq = new MinPQ<Node>();
+public class Solver {
+    private final Board board;
+    private final ArrayList<Board> gameMoves = new ArrayList<Board>();
+
+    private boolean solutionAttempted = false;
     private boolean isGameSolvable;
-    private ArrayList<Board> gameMoves = new ArrayList<Board>();
 
     // find a solution to the initial board (using the A* algorithm)
     public Solver(Board initial) {
@@ -31,32 +33,34 @@ public class Solver implements Iterable<Board> {
         if (!isGameSolvable) {
             return -1;
         }
-        return gameMoves.size();
+        return gameMoves.size() - 1;
     }
 
     // sequence of boards in a shortest solution
     public Iterable<Board> solution() {
-        return this;
+        return new SolutionIterable();
     }
 
-    public Iterator<Board> iterator() {
-        return new SolutionIterator();
+    private class SolutionIterable implements Iterable<Board> {
+        public Iterator<Board> iterator() {
+            return new SolutionIterator();
+        }	
     }
 
     private class SolutionIterator implements Iterator<Board> {
         private int idx = 0;
 
         public boolean hasNext() {
-            return idx + 1 < gameMoves.size();
+            return idx < gameMoves.size();
         }
 
         public Board next() {
             if (!this.hasNext()) {
                 throw new NoSuchElementException("Iterator does not have next");
             } else {
-                Board board = gameMoves.get(idx);
+                Board nextBoard = gameMoves.get(idx);
                 idx += 1;
-                return board;
+                return nextBoard;
             }
         }
 
@@ -66,11 +70,64 @@ public class Solver implements Iterable<Board> {
     }
 
     private void solve() {
+        if (solutionAttempted) {
+            return;
+        }
+
+        solutionAttempted = true;
+
+        MinPQ<Node> openSet = new MinPQ<Node>();
+        openSet.insert(new Node(this.board));
+
+        // heuristic + number of moves made to get to the search node
+        HashMap<String, Integer> distance = new HashMap<String, Integer>();
+        distance.put(this.board.toString(), 0);
+
+        HashMap<String, Integer> cost = new HashMap<String, Integer>();
+        distance.put(this.board.toString(), 0);
+
+        while (!openSet.isEmpty()) {
+            Node current = openSet.delMin();
+            Board currentBoard = current.board;
+
+            if (currentBoard.isGoal()) {
+                isGameSolvable = true;
+                saveSolution(current);
+                return;
+            }
+
+            for (Board neighbour : currentBoard.neighbors()) {
+                int newDistance = distance.get(currentBoard.toString()) + 1;
+                int oldDistance = distance.getOrDefault(neighbour, Integer.MAX_VALUE);
+                if (newDistance < oldDistance) {
+                    distance.put(neighbour.toString(), newDistance);
+                    Node node = new Node(current, neighbour, newDistance);
+                    int oldCost = cost.getOrDefault(neighbour, Integer.MAX_VALUE);
+                    int newCost = node.cost();
+                    if (newCost < oldCost) {
+                        openSet.insert(node);
+                    }
+                }
+            }
+        }
 
     }
 
+    private void saveSolution(Node goalNode) {
+        ArrayList<Board> moves = new ArrayList<Board>();
+        Node node = goalNode;
+        while (node != null) {
+            moves.add(node.board);
+            node = node.parent;
+        }
+
+        for (int i = moves.size() - 1; i > -1; i--) {
+            gameMoves.add(moves.get(i));
+        }
+    }
+
     private class Node implements Comparable<Node> {
-        public Board parent = null;
+        public Node parent = null;
         public Board board;
         public int moves = 0;
 
@@ -78,22 +135,43 @@ public class Solver implements Iterable<Board> {
             this.board = board;
         }
 
-        public Node(Board parent, Board board, int moves) {
+        public Node(Node parent, Board board, int moves) {
             this.parent = parent;
             this.board = board;
             this.moves = moves;
         }
 
+        public int cost() {
+            return board.manhattan() + moves;
+        }
+
         @Override
         public int compareTo(Node other) {
-            int selfd = board.manhattan() + moves;
-            int otherd = other.board.manhattan() + moves;
-            return selfd - otherd;
+            return cost() - other.cost();
         }
     }
 
     // test client (see below)
     public static void main(String[] args) {
+        // create initial board from file
+        In in = new In(args[0]);
+        int n = in.readInt();
+        int[][] tiles = new int[n][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                tiles[i][j] = in.readInt();
+        Board initial = new Board(tiles);
 
+        // solve the puzzle
+        Solver solver = new Solver(initial);
+
+        // print solution to standard output
+        if (!solver.isSolvable())
+            StdOut.println("No solution possible");
+        else {
+            StdOut.println("Minimum number of moves = " + solver.moves());
+            for (Board board : solver.solution())
+                StdOut.println(board);
+        }
     }
 }

@@ -1,14 +1,15 @@
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Arrays;
-import java.util.Random;
 
-public class Board implements Iterable<Board> {
+import edu.princeton.cs.algs4.Stack;
+import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
+
+public class Board {
     private int[][] tiles;
-    private int n;
-    private Integer hammingDistance = null;
-    private Integer manhattanDistance = null;
-    private Integer hashCode = null;
+    private final int n;
+    private int hammingDistance = -1;
+    private int manhattanDistance = -1;
+    private String str = null;
 
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
@@ -22,20 +23,23 @@ public class Board implements Iterable<Board> {
 
     // string representation of this board
     public String toString() {
-        String[] rows = new String[n];
+        if (str != null) {
+            return str;
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(Integer.toString(n));
+        stringBuilder.append("\n");
         for (int i = 0; i < n; i++) {
-            rows[i] = rowToString(tiles[i]);
+            for (int j = 0; j < n; j++) {
+                if (j != 0) {
+                    stringBuilder.append(" ");
+                }
+                stringBuilder.append(Integer.toString(tiles[i][j]));
+            }
+            stringBuilder.append("\n");
         }
-        String board = String.join("\n", rows);
-        return board;
-    }
-
-    private String rowToString(int[] row) {
-        String s = "";
-        for(int i = 0; i < n; i++) {
-            s += Integer.toString(row[i]);
-        }
-        return s;
+        str = stringBuilder.toString();
+        return str;
     }
 
     // board dimension n
@@ -45,7 +49,7 @@ public class Board implements Iterable<Board> {
 
     // number of tiles out of place
     public int hamming() {
-        if (hammingDistance != null) {
+        if (hammingDistance >= 0) {
             return hammingDistance;
         }
 
@@ -62,17 +66,17 @@ public class Board implements Iterable<Board> {
 
             }
         }
+        hammingDistance = h;
         return h;
     }
 
     // sum of Manhattan distances between tiles and goal
     public int manhattan() {
-        if (manhattanDistance != null) {
+        if (manhattanDistance >= 0) {
             return manhattanDistance;
         }
 
         int m = 0;
-        int last = n - 1;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 int v = tiles[i][j];
@@ -87,6 +91,7 @@ public class Board implements Iterable<Board> {
                 m += Math.abs(i - ei) + Math.abs(j - ej);
             }
         }
+        manhattanDistance = m;
         return m;
     }
 
@@ -97,76 +102,48 @@ public class Board implements Iterable<Board> {
 
     @Override
     public boolean equals(Object y) {
-        return this.hashCode() == y.hashCode();
-    }
-
-    @Override
-    public int hashCode() {
-        if (hashCode != null) {
-            return hashCode;
+        if (y == null || y.getClass() != this.getClass()) {
+            return false;
         }
-        return Arrays.deepHashCode(tiles);
+        return this.toString().equals(y.toString());
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
-        return this;
-    }
+        int zr = 0;
+        int zc = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (tiles[i][j] == 0) {
+                    zr = i;
+                    zc = j;
+                    break;
+                }
+            }
+        }
 
-    public Iterator<Board> iterator() {
-        return new BoardIterator();
-    }
-
-    private class BoardIterator implements Iterator<Board> {
-        int zr, zc;
-        int nr, nc;
-        int rows[] = new int[] {0, 0, 1, -1};
-        int cols[] = new int[] {1, -1, 0, 0};
+        int[] rows = {0, 0, 1, -1};
+        int[] cols = {1, -1, 0, 0};
         int idx = 0;
-
-        public BoardIterator() {
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    if (tiles[i][j] == 0) {
-                        zr = i;
-                        zc = j;
-                        break;
-                    }
-                }
+        Stack<Board> boards =  new Stack<Board>();
+        while (idx < 4) {
+            int nr = zr + rows[idx];
+            int nc = zc + cols[idx];
+            if (!(nr >= n || nr < 0 || nc >= n || nc < 0)) {
+                Board nextBoard = getBoardAfterSwap(zr, zc, nr, nc);
+                boards.push(nextBoard);
             }
+            idx += 1;
         }
-
-        public boolean hasNext() {
-            while (idx < 4) {
-                nr = zr + rows[idx];
-                nc = zc + cols[idx];
-                if (nr >= n || nr < 0 || nc >= n || nc < 0) {
-                    idx += 1;
-                }
-            }
-            return idx < 4;
-        }
-
-        public Board next() {
-            if (!this.hasNext()) {
-                throw new NoSuchElementException("Iterator does not have next");
-            } else {
-                return getBoardAfterSwap(zr, zc, nr, nc);
-            }
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException("Remove is not supported");
-        }
+        return boards;
     }
 
-    // a board that is o/btained by exchanging any pair of tiles
+    // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        Random randomGenerator = new Random();
-        int a = randomGenerator.nextInt(n*n) + 1;
+        int a = StdRandom.uniform(n*n - 1) + 1; // excluding blank tile
         int b = 0;
         while (b == 0 || b == a) {
-            b = randomGenerator.nextInt(n*n) + 1;
+            b = StdRandom.uniform(n*n - 1) + 1;
         }
         int r1 = 0, c1 = 0, r2 = 0, c2 = 0;
         for (int i = 0; i < n; i++) {
@@ -200,6 +177,6 @@ public class Board implements Iterable<Board> {
 
     // unit testing (not graded)
     public static void main(String[] args) {
-
+        StdOut.println("Board.main");
     }
 }
