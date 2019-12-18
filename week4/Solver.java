@@ -1,7 +1,5 @@
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.HashMap;
+import java.util.List;
 
 import edu.princeton.cs.algs4.MinPQ;
 import edu.princeton.cs.algs4.StdOut;
@@ -38,35 +36,8 @@ public class Solver {
 
     // sequence of boards in a shortest solution
     public Iterable<Board> solution() {
-        return new SolutionIterable();
-    }
-
-    private class SolutionIterable implements Iterable<Board> {
-        public Iterator<Board> iterator() {
-            return new SolutionIterator();
-        }	
-    }
-
-    private class SolutionIterator implements Iterator<Board> {
-        private int idx = 0;
-
-        public boolean hasNext() {
-            return idx < gameMoves.size();
-        }
-
-        public Board next() {
-            if (!this.hasNext()) {
-                throw new NoSuchElementException("Iterator does not have next");
-            } else {
-                Board nextBoard = gameMoves.get(idx);
-                idx += 1;
-                return nextBoard;
-            }
-        }
-
-        public void remove() {
-            throw new UnsupportedOperationException("Remove is not supported");
-        }
+        List<Board> gameMovesCopy = new ArrayList<>(gameMoves);
+        return gameMovesCopy;
     }
 
     private void solve() {
@@ -78,18 +49,46 @@ public class Solver {
 
         MinPQ<Node> openSet = new MinPQ<Node>();
         openSet.insert(new Node(this.board));
-
-        // heuristic + number of moves made to get to the search node
-        HashMap<String, Integer> distance = new HashMap<String, Integer>();
-        distance.put(this.board.toString(), 0);
-
-        HashMap<String, Integer> cost = new HashMap<String, Integer>();
-        distance.put(this.board.toString(), 0);
-
+        
+//        // heuristic + number of moves made to get to the search node
+//        HashMap<String, Integer> distance = new HashMap<String, Integer>();
+//        distance.put(this.board.toString(), 0);
+//
+//        HashMap<String, Integer> cost = new HashMap<String, Integer>();
+//        distance.put(this.board.toString(), 0);
+//
+//        while (!openSet.isEmpty()) {
+//            Node current = openSet.delMin();
+//            Board currentBoard = current.board;
+//
+//            if (currentBoard.isGoal()) {
+//                isGameSolvable = true;
+//                saveSolution(current);
+//                return;
+//            }
+//
+//            for (Board neighbour : currentBoard.neighbors()) {
+//                int newDistance = distance.get(currentBoard.toString()) + 1;
+//                int oldDistance = distance.getOrDefault(neighbour, Integer.MAX_VALUE);
+//                if (newDistance < oldDistance) {
+//                    distance.put(neighbour.toString(), newDistance);
+//                    Node node = new Node(current, neighbour, newDistance);
+//                    int oldCost = cost.getOrDefault(neighbour, Integer.MAX_VALUE);
+//                    int newCost = node.cost();
+//                    if (newCost < oldCost) {
+//                        openSet.insert(node);
+//                    }
+//                }
+//            }
+//        }
+        
+        List<Board> visitedBoards = new ArrayList<Board>();
+        
         while (!openSet.isEmpty()) {
             Node current = openSet.delMin();
             Board currentBoard = current.board;
-
+            visitedBoards.add(currentBoard);
+            
             if (currentBoard.isGoal()) {
                 isGameSolvable = true;
                 saveSolution(current);
@@ -97,20 +96,13 @@ public class Solver {
             }
 
             for (Board neighbour : currentBoard.neighbors()) {
-                int newDistance = distance.get(currentBoard.toString()) + 1;
-                int oldDistance = distance.getOrDefault(neighbour, Integer.MAX_VALUE);
-                if (newDistance < oldDistance) {
-                    distance.put(neighbour.toString(), newDistance);
-                    Node node = new Node(current, neighbour, newDistance);
-                    int oldCost = cost.getOrDefault(neighbour, Integer.MAX_VALUE);
-                    int newCost = node.cost();
-                    if (newCost < oldCost) {
-                        openSet.insert(node);
-                    }
+                if (visitedBoards.contains(neighbour)) {
+                    continue;
                 }
+                Node node = new Node(current, neighbour, current.moves + 1);
+                openSet.insert(node);
             }
         }
-
     }
 
     private void saveSolution(Node goalNode) {

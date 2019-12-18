@@ -1,24 +1,27 @@
 import java.util.Arrays;
 
 import edu.princeton.cs.algs4.Stack;
-import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.StdRandom;
 
 public class Board {
-    private int[][] tiles;
+    private final int[][] tiles;
     private final int n;
     private int hammingDistance = -1;
     private int manhattanDistance = -1;
+    private Board twinBoard = null;
     private String str = null;
 
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
     public Board(int[][] tiles) {
-        this.tiles = Arrays.stream(tiles)
+        this.tiles = cloneTiles(tiles);
+        this.n = tiles.length;
+    }
+    
+    private int[][] cloneTiles(int[][] t) {
+        return Arrays.stream(t)
                 .map(a -> Arrays.copyOf(a, a.length))
                 .toArray(int[][]::new);
-
-        this.n = tiles.length;
     }
 
     // string representation of this board
@@ -58,8 +61,11 @@ public class Board {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 int v = tiles[i][j];
+                if (v == 0) {
+                    continue;
+                }
                 if (i == last && j == last) {
-                    h += v != 0 ? 1 : 0;
+                    h += 1;
                 } else {
                     h += v != i*n + j + 1 ? 1 : 0;
                 }
@@ -80,14 +86,13 @@ public class Board {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 int v = tiles[i][j];
-                int ei, ej;
                 if (v == 0) {
-                    ei = n - 1;
-                    ej = n - 1;
-                } else {
-                    ei = (v - 1) / n;
-                    ej = (v - 1) % n;
+                    continue;
                 }
+                int ei, ej;
+                ei = (v - 1) / n;
+                ej = (v - 1) % n;
+//                System.out.println(String.format("%d is %d exp %d  is %d exp %d", v, i, ei, j, ej));
                 m += Math.abs(i - ei) + Math.abs(j - ej);
             }
         }
@@ -140,6 +145,10 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
+        if (twinBoard != null) {
+            return twinBoard;
+        }
+        
         int a = StdRandom.uniform(n*n - 1) + 1; // excluding blank tile
         int b = 0;
         while (b == 0 || b == a) {
@@ -159,24 +168,117 @@ public class Board {
                 }
             }
         }
-        return getBoardAfterSwap(r1, c1, r2, c2);
+        twinBoard = getBoardAfterSwap(r1, c1, r2, c2);
+        return twinBoard;
     }
 
     private Board getBoardAfterSwap(int r1, int c1, int r2, int c2) {
-        swap(r1, c1, r2, c2);
-        Board board = new Board(tiles);
-        swap(r1, c1, r2, c2);
+        int[][] tilesCopy = getTilesAfterSwap(r1, c1, r2, c2);
+        Board board = new Board(tilesCopy);
         return board;
     }
 
-    private void swap(int r1, int c1, int r2, int c2) {
-        int tmp = tiles[r2][c2];
-        tiles[r2][c2] = tiles[r1][c1];
-        tiles[r1][c1] = tmp;
+    private int[][] getTilesAfterSwap(int r1, int c1, int r2, int c2) {
+        int[][] tilesCopy = cloneTiles(this.tiles);
+        int tmp = tilesCopy[r2][c2];
+        tilesCopy[r2][c2] = tilesCopy[r1][c1];
+        tilesCopy[r1][c1] = tmp;
+        return tilesCopy;
     }
-
+    
+    private static void testHammingDistance() {
+        System.out.println("Running testHammingDistance...");
+        int[][] tiles = {
+            {0, 1, 3},
+            {4, 2, 5},
+            {7, 8, 6},
+        };
+        Board board = new Board(tiles);
+        int v = board.hamming();
+        assert (v == 4) : String.format("expected 4 but got %d", v);
+    }
+    
+    private static void testHammingDistanceWithSize2() {
+        System.out.println("Running testHammingDistanceWithSize2...");
+        int[][] tiles = {
+            {3, 2},
+            {1, 0},
+        };
+        Board board = new Board(tiles);
+        int v = board.hamming();
+        assert (v == 2) : String.format("expected 2 but got %d", v);
+    }
+    
+    private static void testManhattanDistance() {
+        System.out.println("Running testManhattanDistance...");
+        int[][] tiles = {
+            {0, 1, 3},
+            {4, 2, 5},
+            {7, 8, 6},
+        };
+        Board board = new Board(tiles);
+        int v = board.manhattan();
+        assert (v == 4) : String.format("expected 4 but got %d", v);
+    }
+    
+    private static void testCallingRandomMethods9Times() {
+        System.out.println("Running testCallingRandomMethods9Times...");
+        int[][] tiles = {
+            {0, 1, 3},
+            {4, 2, 5},
+            {7, 8, 6},
+        };
+        
+        int[][] otherTiles = {
+            {1, 0, 3},
+            {4, 2, 5},
+            {7, 8, 6},
+        };
+        Board otherBoard = new Board(otherTiles);
+        
+        int[][] expectedTiles = {
+            {0, 1, 3},
+            {4, 2, 5},
+            {7, 8, 6},
+        };
+        Board expectedBoard = new Board(expectedTiles);
+        
+        Board board = new Board(tiles);
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.toString();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.hamming();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.twin();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.equals(otherBoard);
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.hamming();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.equals(otherBoard);
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.isGoal();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.twin();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+        
+        board.twin();
+        assert board.equals(expectedBoard) : "Expected true but got false";
+    }
+    
     // unit testing (not graded)
     public static void main(String[] args) {
-        StdOut.println("Board.main");
+        testHammingDistanceWithSize2();
+        testHammingDistance();
+        testManhattanDistance();
+        testCallingRandomMethods9Times();
     }
 }
