@@ -84,23 +84,13 @@ public class Solver {
         }
 
         for (Board neighbour : currentBoard.neighbors()) {
-            if (!isVisitedBoard(current, neighbour)) {
+            if (current.parent == null || !current.parent.board.equals(neighbour)) {
                 Node node = new Node(current, neighbour, current.moves + 1);
                 openSet.insert(node);
             }
         }
 
         return null;
-    }
-
-    private boolean isVisitedBoard(Node current, Board board) {
-        while (current != null) {
-            if (current.board.equals(board)) {
-                return true;
-            }
-            current = current.parent;
-        }
-        return false;
     }
 
     private void saveSolution(Node goalNode) {
@@ -120,19 +110,22 @@ public class Solver {
         public Node parent = null;
         public Board board;
         public int moves = 0;
+        private final int manhattan;
 
         public Node(Board board) {
             this.board = board;
+            this.manhattan = board.manhattan();
         }
 
         public Node(Node parent, Board board, int moves) {
             this.parent = parent;
             this.board = board;
             this.moves = moves;
+            this.manhattan = board.manhattan();
         }
 
         public int cost() {
-            return board.manhattan() + moves;
+            return manhattan + moves;
         }
 
         @Override
