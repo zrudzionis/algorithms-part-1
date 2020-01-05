@@ -1,3 +1,4 @@
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,9 @@ public class Solver {
 
     // sequence of boards in a shortest solution
     public Iterable<Board> solution() {
+        if (!isGameSolvable) {
+            return null;
+        }
         List<Board> gameMovesCopy = new ArrayList<>(gameMoves);
         return gameMovesCopy;
     }
@@ -49,60 +53,54 @@ public class Solver {
 
         MinPQ<Node> openSet = new MinPQ<Node>();
         openSet.insert(new Node(this.board));
-        
-//        // heuristic + number of moves made to get to the search node
-//        HashMap<String, Integer> distance = new HashMap<String, Integer>();
-//        distance.put(this.board.toString(), 0);
-//
-//        HashMap<String, Integer> cost = new HashMap<String, Integer>();
-//        distance.put(this.board.toString(), 0);
-//
-//        while (!openSet.isEmpty()) {
-//            Node current = openSet.delMin();
-//            Board currentBoard = current.board;
-//
-//            if (currentBoard.isGoal()) {
-//                isGameSolvable = true;
-//                saveSolution(current);
-//                return;
-//            }
-//
-//            for (Board neighbour : currentBoard.neighbors()) {
-//                int newDistance = distance.get(currentBoard.toString()) + 1;
-//                int oldDistance = distance.getOrDefault(neighbour, Integer.MAX_VALUE);
-//                if (newDistance < oldDistance) {
-//                    distance.put(neighbour.toString(), newDistance);
-//                    Node node = new Node(current, neighbour, newDistance);
-//                    int oldCost = cost.getOrDefault(neighbour, Integer.MAX_VALUE);
-//                    int newCost = node.cost();
-//                    if (newCost < oldCost) {
-//                        openSet.insert(node);
-//                    }
-//                }
-//            }
-//        }
-        
-        List<Board> visitedBoards = new ArrayList<Board>();
-        
-        while (!openSet.isEmpty()) {
-            Node current = openSet.delMin();
-            Board currentBoard = current.board;
-            visitedBoards.add(currentBoard);
-            
-            if (currentBoard.isGoal()) {
-                isGameSolvable = true;
-                saveSolution(current);
-                return;
-            }
 
-            for (Board neighbour : currentBoard.neighbors()) {
-                if (visitedBoards.contains(neighbour)) {
-                    continue;
-                }
+        MinPQ<Node> twinOpenSet = new MinPQ<Node>();
+        twinOpenSet.insert(new Node(this.board.twin()));
+
+        Node goalNode = null;
+        Node twinGoalNode = null;
+
+        while (goalNode == null && twinGoalNode == null && (!openSet.isEmpty() || !openSet.isEmpty())) {
+            goalNode = nextIteration(openSet);
+            twinGoalNode = nextIteration(twinOpenSet);
+        }
+
+        if (goalNode != null) {
+            isGameSolvable = true;
+            saveSolution(goalNode);
+        }
+    }
+
+    private Node nextIteration(MinPQ<Node> openSet) {
+        if (openSet.isEmpty()) {
+            return null;
+        }
+
+        Node current = openSet.delMin();
+        Board currentBoard = current.board;
+
+        if (currentBoard.isGoal()) {
+            return current;
+        }
+
+        for (Board neighbour : currentBoard.neighbors()) {
+            if (!isVisitedBoard(current, neighbour)) {
                 Node node = new Node(current, neighbour, current.moves + 1);
                 openSet.insert(node);
             }
         }
+
+        return null;
+    }
+
+    private boolean isVisitedBoard(Node current, Board board) {
+        while (current != null) {
+            if (current.board.equals(board)) {
+                return true;
+            }
+            current = current.parent;
+        }
+        return false;
     }
 
     private void saveSolution(Node goalNode) {
